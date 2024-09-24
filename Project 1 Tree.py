@@ -1,7 +1,7 @@
 import json
 import numpy as np
 
-# Load resistances between nodes from 'node_resistances.json'
+# Load resistances between nodes
 with open('node_resistances.json', 'r') as f:
     resistances_data = json.load(f)
 
@@ -15,7 +15,7 @@ for entry in resistances_data:
 
 print(f"Resistances are {resistances}")
 
-# Load fixed node voltages from 'node_voltages.json'
+# Load fixed node voltages
 with open('node_voltages.json', 'r') as f:
     voltages_data = json.load(f)
 
@@ -38,31 +38,29 @@ for node in fixed_voltages.keys():
 n = max_node
 print(f"Total number of nodes is {n}")
 
-# Initialize A (the system matrix) and b (the right-hand side vector)
+# Initialize A and b
 A = np.zeros((n, n))
 b = np.zeros(n)
 
-# Function to compute A matrix and b vector
 def compute_A_matrix(resistances, fixed_voltages, n):
     A = np.zeros((n, n))
     b = np.zeros(n)
 
-    # Build neighbor lists for each node
+    # Build neighbor lists
     neighbors = {}
     for (node1, node2), resistance in resistances.items():
         neighbors.setdefault(node1, []).append((node2, resistance))
         neighbors.setdefault(node2, []).append((node1, resistance))
 
-    # Set up the equations for each node
+    # Set up the equations
     for i in range(n):
         node = i + 1  # Adjusting for 1-based node numbering
         if node in fixed_voltages:
-            # For nodes with fixed voltages, set A[i, i] = 1 and b[i] to the voltage
             A[i, :] = 0
             A[i, i] = 1
             b[i] = fixed_voltages[node]
         else:
-            # For other nodes, sum up the conductances to neighbors
+            # For other nodes sum up the conductances to neighbors
             sum_conductance = 0
             for neighbor, resistance in neighbors.get(node, []):
                 conductance = 1 / resistance
@@ -74,16 +72,16 @@ def compute_A_matrix(resistances, fixed_voltages, n):
 
     return A, b
 
-# Compute A and b using the function
+# Compute A and b
 A, b = compute_A_matrix(resistances, fixed_voltages, n)
 print('Computed A matrix:')
 print(A)
 print('Computed b vector:', b)
 
-# Solve the system of equations to find node voltages
+# Solve
 node_voltages = np.linalg.solve(A, b)
 
-# Print the voltages at each node
+# Print the final voltages
 print('Node voltages are:')
 for i, voltage in enumerate(node_voltages):
     print(f'Node {i+1}: {voltage}')
