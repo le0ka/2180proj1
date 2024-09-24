@@ -27,13 +27,6 @@ def read_fixed_voltages_json(file_name):
             fixed_voltages[node] = voltage
     return fixed_voltages
 
-fixed_voltages = read_fixed_voltages_json('node_voltages.json')
-resistances = read_resistances_json('node_resistances.json')
-
-
-
-import numpy as np
-
 def compute_A(resistances, fixed_voltages, num_nodes=25):
     A = np.zeros((num_nodes, num_nodes))
     b = np.zeros(num_nodes)
@@ -80,11 +73,35 @@ def lu_factorization(A):
 
     return L, U
 
+def forward_substitution(L, b):
+    n = len(b)
+    y = np.zeros_like(b)
+
+    for i in range(n):
+        y[i] = b[i] - np.dot(L[i, :i], y[:i])
+    
+    return y
+
+def backward_substitution(U, y):
+    n = len(y)
+    x = np.zeros_like(y)
+
+    for i in range(n-1, -1, -1):
+        x[i] = (y[i] - np.dot(U[i, i+1:], x[i+1:])) / U[i, i]
+    
+    return x
+
+def solve(A, b):
+    L, U = lu_factorization(A)  # LU factorization of A
+    y = forward_substitution(L, b)  # Solve Ly = b
+    x = backward_substitution(U, y)  # Solve Ux = y
+    return x
 
 
 
-
-            
+fixed_voltages = read_fixed_voltages_json('node_voltages.json')
+resistances = read_resistances_json('node_resistances.json')
+          
                 
 
 A, b = compute_A(resistances, fixed_voltages, 25)
@@ -96,6 +113,9 @@ L, U = lu_factorization(A)
 #print(U)
 
 #P, L, U = la.lu(A)
+
+y = solve(A, b)
+print(y)
 
 
 x = np.linalg.solve(A, b)
