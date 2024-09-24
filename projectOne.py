@@ -2,6 +2,9 @@ import json
 
 import numpy as np
 import scipy.linalg as la
+import time
+start = time.time()
+
 
 def read_resistances_json(file_name):
     resistances = {}
@@ -97,3 +100,7 @@ L, U = lu_factorization(A)
 
 x = np.linalg.solve(A, b)
 print(x)
+
+end = time.time()
+print("The time of execution of above program is :",
+      (end-start) * 10**3, "ms")

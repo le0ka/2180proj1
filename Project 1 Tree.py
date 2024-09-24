@@ -1,5 +1,7 @@
 import json
 import numpy as np
+import time
+start = time.time()
 
 # Load resistances between nodes
 with open('node_resistances.json', 'r') as f:
@@ -85,3 +87,7 @@ node_voltages = np.linalg.solve(A, b)
 print('Node voltages are:')
 for i, voltage in enumerate(node_voltages):
     print(f'Node {i+1}: {voltage}')
+
+end = time.time()
+print("The time of execution of above program is :",
+      (end-start) * 10**3, "ms")
