@@ -74,6 +74,46 @@ def compute_A_matrix(resistances, fixed_voltages, n):
 
     return A, b
 
+def lu_factorization(A):
+    n = len(A)
+    L = np.eye(n)  
+    U = A.copy()   
+
+    for i in range(n):
+        if U[i, i] == 0:
+            raise ValueError("Zero pivot :(")
+
+        for j in range(i+1, n):
+            factor = U[j, i] / U[i, i]
+            L[j, i] = factor  # Store the factor in L
+            U[j, i:] = U[j, i:] - factor * U[i, i:]
+
+    return L, U
+
+def forward_substitution(L, b):
+    n = len(b)
+    y = np.zeros_like(b)
+
+    for i in range(n):
+        y[i] = b[i] - np.dot(L[i, :i], y[:i])
+    
+    return y
+
+def backward_substitution(U, y):
+    n = len(y)
+    x = np.zeros_like(y)
+
+    for i in range(n-1, -1, -1):
+        x[i] = (y[i] - np.dot(U[i, i+1:], x[i+1:])) / U[i, i]
+    
+    return x
+
+def solve(A, b):
+    L, U = lu_factorization(A)  # LU factorization of A
+    y = forward_substitution(L, b)  # Solve Ly = b
+    x = backward_substitution(U, y)  # Solve Ux = y
+    return x
+
 # Compute A and b
 A, b = compute_A_matrix(resistances, fixed_voltages, n)
 print('Computed A matrix:')
@@ -81,7 +121,7 @@ print(A)
 print('Computed b vector:', b)
 
 # Solve
-node_voltages = np.linalg.solve(A, b)
+node_voltages = solve(A, b)
 
 # Print the final voltages
 print('Node voltages are:')
