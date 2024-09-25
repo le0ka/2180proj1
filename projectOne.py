@@ -1,10 +1,6 @@
 import json
-
-import numpy as np
-import scipy.linalg as la
 import time
-start = time.time()
-
+import numpy as np
 
 def read_resistances_json(file_name):
     resistances = {}
@@ -27,6 +23,7 @@ def read_fixed_voltages_json(file_name):
             fixed_voltages[node] = voltage
     return fixed_voltages
 
+#Based on the recitation method for computing the A matrix
 def compute_A(resistances, fixed_voltages, num_nodes=25):
     A = np.zeros((num_nodes, num_nodes))
     b = np.zeros(num_nodes)
@@ -52,7 +49,6 @@ def compute_A(resistances, fixed_voltages, num_nodes=25):
 
             # Set diagonal element with sum of conductances
             A[i-1][i-1] = sum_resistances
-            # No need to update b[i-1], already initialized to 0
 
     return A, b
 
@@ -68,9 +64,10 @@ def lu_factorization(A):
 
         for j in range(i+1, n):
             factor = U[j, i] / U[i, i]
-            L[j, i] = factor  # Store the factor in L
+            L[j, i] = factor  
             U[j, i:] = U[j, i:] - factor * U[i, i:]
 
+    U = U.astype(float)
     return L, U
 
 def forward_substitution(L, b):
@@ -97,30 +94,57 @@ def solve(A, b):
     x = backward_substitution(U, y)  # Solve Ux = y
     return x
 
+def solve_currents(voltages, resistances):
+    currents = {}
+    for (node1, node2), resistance in resistances.items():
+        current = (voltages[node1 - 1] - voltages[node2 - 1]) / resistance
+        currents[(node1, node2)] = float(current)
+
+    return currents
+
+
+def write_output_to_file(A, L, U, node_voltages, currents, file_name):
+    with open(file_name, 'w') as f:
+        # Write A matrix
+        f.write("A matrix:\n")
+        f.write(np.array2string(A, precision=2, separator=', ') + "\n\n")
+        
+        # Write LU factorization
+        f.write("L matrix:\n")
+        f.write(np.array2string(L, precision=2, separator=', ') + "\n\n")
+        
+        f.write("U matrix:\n")
+        f.write(np.array2string(U, precision=2, separator=', ') + "\n\n")
+        
+        # Write node voltages
+        f.write("Node Voltages:\n")
+        for i, voltage in enumerate(node_voltages, start=1):
+            f.write(f"Node {i}: {voltage:.2f} V\n")
+        f.write("\n")
+        
+        # Write currents each link
+        f.write("Currents through each link:\n")
+        for (node1, node2), current in currents.items():
+            f.write(f"Current between Node {node1} and Node {node2}: {current:.2f} A\n")
+        f.write("\n")
 
 
 fixed_voltages = read_fixed_voltages_json('node_voltages.json')
 resistances = read_resistances_json('node_resistances.json')
           
                 
-
+start = time.time()
 A, b = compute_A(resistances, fixed_voltages, 25)
-#print(A)
-#print(b)
 
 L, U = lu_factorization(A)
-#print(L)
-#print(U)
 
-#P, L, U = la.lu(A)
+final_voltages = solve(A, b)
 
-y = solve(A, b)
-print(y)
-
-
-x = np.linalg.solve(A, b)
-print(x)
+currents = solve_currents(final_voltages, resistances)
 
 end = time.time()
 print("The time of execution of above program is :",
       (end-start) * 10**3, "ms")
+
+output_file_name = "project1GridResults.txt"
+write_output_to_file(A, L, U, final_voltages, currents, output_file_name)

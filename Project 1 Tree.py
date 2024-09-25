@@ -1,7 +1,6 @@
 import json
 import numpy as np
 import time
-start = time.time()
 
 # Load resistances between nodes
 with open('node_resistances.json', 'r') as f:
@@ -44,6 +43,7 @@ print(f"Total number of nodes is {n}")
 A = np.zeros((n, n))
 b = np.zeros(n)
 
+#Based on the recitation method for computing the A matrix
 def compute_A_matrix(resistances, fixed_voltages, n):
     A = np.zeros((n, n))
     b = np.zeros(n)
@@ -114,20 +114,51 @@ def solve(A, b):
     x = backward_substitution(U, y)  # Solve Ux = y
     return x
 
-# Compute A and b
+def solve_currents(voltages, resistances):
+    currents = {}
+    for (node1, node2), resistance in resistances.items():
+        current = (voltages[node1 - 1] - voltages[node2 - 1]) / resistance
+        currents[(node1, node2)] = float(current)
+
+    return currents
+
+start = time.time()
+
 A, b = compute_A_matrix(resistances, fixed_voltages, n)
-print('Computed A matrix:')
-print(A)
-print('Computed b vector:', b)
+L, U = lu_factorization(A)
 
-# Solve
+
 node_voltages = solve(A, b)
-
-# Print the final voltages
-print('Node voltages are:')
-for i, voltage in enumerate(node_voltages):
-    print(f'Node {i+1}: {voltage}')
+currents = solve_currents(node_voltages, resistances)
 
 end = time.time()
 print("The time of execution of above program is :",
       (end-start) * 10**3, "ms")
+
+def write_output_to_file(A, L, U, node_voltages, currents, file_name):
+    with open(file_name, 'w') as f:
+        # Write A matrix
+        f.write("A matrix:\n")
+        f.write(np.array2string(A, precision=2, separator=', ') + "\n\n")
+        
+        # Write LU factorization
+        f.write("L matrix:\n")
+        f.write(np.array2string(L, precision=2, separator=', ') + "\n\n")
+        
+        f.write("U matrix:\n")
+        f.write(np.array2string(U, precision=2, separator=', ') + "\n\n")
+        
+        # Write node voltages
+        f.write("Node Voltages:\n")
+        for i, voltage in enumerate(node_voltages, start=1):
+            f.write(f"Node {i}: {voltage:.2f} V\n")
+        f.write("\n")
+        
+        # Write currents each link
+        f.write("Currents through each link:\n")
+        for (node1, node2), current in currents.items():
+            f.write(f"Current between Node {node1} and Node {node2}: {current:.2f} A\n")
+        f.write("\n")
+
+output_file_name = "project1TreeResults.txt"
+write_output_to_file(A, L, U, node_voltages, currents, output_file_name)
